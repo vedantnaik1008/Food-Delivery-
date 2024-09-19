@@ -1,37 +1,45 @@
-import { useEffect, useState } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
+interface UserData {
+    _id: string;
+    email: string;
+    fullname: string;
+    profileImageURL: string;
+    role: string;
+}
 
 const useUserInfo = () => {
-    const [userData, setUserData] = useState<{
-        email: string;
-        fullname: string;
-        profileImageURL: string;
-    }>();
+    const [trigger, setTrigger] = useState(false);
 
-    const fetchUserData = async () => {
+    const fetchUserData = async (): Promise<UserData> => {
         try {
             const response = await fetch('http://localhost:8000/user/data', {
-                credentials: 'include' // Important for sending/receiving cookies from the server
+                credentials: 'include'
             });
             if (!response.ok) throw new Error('Network response was not ok');
-            const userData = await response.json();
-            return userData;
+            return await response.json();
         } catch (error) {
             console.error('Failed to fetch user data:', error);
             throw error;
         }
     };
 
-    useEffect(() => {
-        const loadData = async () => {
-            const data = await fetchUserData();
-            setUserData(data);
-        };
+    const {
+        data: userData,
+        isLoading,
+        isError,
+        refetch
+    } = useQuery({
+        queryKey: ['userInfo'],
+        queryFn: fetchUserData,
+        initialData: null,
+        enabled: true,
+        retry: 1,
+        staleTime: 1000
+    });
 
-        loadData();
-    }, []);
-    
-    return {userData};
+    return { userData, trigger, setTrigger, isLoading, isError, refetch };
 };
 
 export default useUserInfo;
